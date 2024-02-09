@@ -1,28 +1,56 @@
-import {  createSlice } from "@reduxjs/toolkit"
-// import axios from "axios"
-// import { BASE_URL } from "../../utils/constants"
+import { createAsyncThunk, createSlice } from "@reduxjs/toolkit"
+import axios from "axios"
+import { BASE_URL } from "../../utils/constants"
 
-// export const getCategories = createAsyncThunk('categories/getCategories', async (_, thunkApi) => {
-//   try {
-//     const res = await axios(`${BASE_URL}/categories`)
-//     return res.data
+export const createUser = createAsyncThunk('users/createUser', async (payload, thunkApi) => {
+  try {
+    const res = await axios.post(`${BASE_URL}/users`, payload)
+    return res.data
 
-//   } catch (err) {
-//     console.log(err)
-//     return thunkApi.rejectWithValue(err)
-//   }
-// })
+  } catch (err) {
+    console.log(err)
+    return thunkApi.rejectWithValue(err)
+  }
+})
+export const loginUser = createAsyncThunk('users/loginUser', async (payload, thunkApi) => {
+  try {
+    const res = await axios.post(`${BASE_URL}/auth/login`, payload)
+    const login = await axios(`${BASE_URL}/auth/profile`, {
+      headers: {
+        "Authorization": `Bearer ${res.data.access_token}`
+      }
+    })
+    return login.data
+
+  } catch (err) {
+    console.log(err)
+    return thunkApi.rejectWithValue(err)
+  }
+})
+
+export const updateUser = createAsyncThunk('users/updateUser', async (payload, thunkApi) => {
+  try {
+    const res = await axios.put(`${BASE_URL}/users/${payload.id}`, payload)
+    return res.data
+
+  } catch (err) {
+    console.log(err)
+    return thunkApi.rejectWithValue(err)
+  }
+})
 
 
 const userSlice = createSlice({
   name: "user",
   initialState: {
-    currentUser: [],
+    currentUser: null,
     cart: [],
     isLoading: false,
+    formType: 'signup',
+    showForm: false,
   },
   reducers: {
-    addItemToCart: (state, {payload}) => {
+    addItemToCart: (state, { payload }) => {
       let newCart = [...state.cart]
       const found = state.cart.find(({ id }) => id === payload.id)
 
@@ -32,23 +60,28 @@ const userSlice = createSlice({
         })
       } else newCart.push({ ...payload, quantity: 1 })
       state.cart = newCart
-    }
-
+    },
+    toggleForm: (state, { payload }) => {
+      state.showForm = payload
+    },
+    toggleFormType: (state, { payload }) => {
+      state.formType = payload
+    },
   },
-  // extraReducers: (builder) => {
-    // builder.addCase(getCategories.pending, (state)=>{
-    //   state.isLoading = true
-    // })
-    // builder.addCase(getCategories.fulfilled, (state, action)=>{
-    //   state.list = action.payload
-    //   state.isLoading = false
-    // })
-    // builder.addCase(getCategories.rejected, (state)=>{
-    //   state.isLoading = false
-    // })
-  // }
+  extraReducers: (builder) => {
+    builder.addCase(createUser.fulfilled, (state, {payload}) => {
+      state.currentUser = payload
+    })
+    builder.addCase(loginUser.fulfilled, (state, {payload}) => {
+      state.currentUser = payload
+    })
+    builder.addCase(updateUser.fulfilled, (state, {payload}) => {
+      state.currentUser = payload
+    })
+   
+  }
 })
 
-export const {addItemToCart} = userSlice.actions
+export const { addItemToCart, toggleForm, toggleFormType } = userSlice.actions
 
 export default userSlice.reducer
